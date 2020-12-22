@@ -1,0 +1,186 @@
+package cn.czyfwpla.cv_java;
+
+import org.opencv.core.*;
+import org.opencv.highgui.HighGui;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.videoio.VideoCapture;
+
+//opencv-java工具包
+public class CVTools {
+
+
+    private volatile static CVTools tools;
+
+    private CVTools() {
+    }
+
+    //单例模式
+    public static CVTools getTools() {
+
+        if (tools == null) {
+            synchronized (CVTools.class) {
+
+                if (tools == null) {
+                    //初始化opencv环境
+                    if (System.getProperty("os.name").contains("Windows")) {
+                        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+                    } else {
+                        System.load(System.getProperty("java.library.path") + "/libopencv_java450.so");
+                    }
+                    tools = new CVTools();
+                }
+            }
+        }
+        return tools;
+    }
+
+    //开运算：先腐蚀后膨胀
+    public void openCalc(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath, 0);
+        Mat thresh = new Mat();
+        Imgproc.adaptiveThreshold(
+                srcImg,
+                thresh,
+                255,
+                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                Imgproc.THRESH_BINARY,
+                11,
+                2);
+        //卷积核
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
+        Mat erodeImg = new Mat();
+        Imgproc.erode(thresh, erodeImg, element);
+
+        Imgcodecs.imwrite("open_close_calc/erode_img.jpg", erodeImg);
+    }
+
+    //直方图阈值
+    public void ostuThreshImg(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath, 0);
+        Mat thresh1 = new Mat();
+        Imgproc.threshold(srcImg, thresh1, 0, 255, Imgproc.THRESH_OTSU);
+        Imgcodecs.imwrite("data/thresh1/thresh3.jpg", thresh1);
+    }
+
+    //自适应阈值
+    public void adaptThreshImg(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath, 0);
+        Mat thresh1 = new Mat();
+        Mat thresh2 = new Mat();
+
+        Imgproc.adaptiveThreshold(
+                srcImg,
+                thresh1,
+                255,
+                Imgproc.ADAPTIVE_THRESH_MEAN_C,
+                Imgproc.THRESH_BINARY,
+                11,
+                2);
+        Imgproc.adaptiveThreshold(
+                srcImg,
+                thresh2,
+                255,
+                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                Imgproc.THRESH_BINARY,
+                11,
+                2);
+        Imgcodecs.imwrite("data/thresh1/thresh1.jpg", thresh1);
+        Imgcodecs.imwrite("data/thresh1/thresh2.jpg", thresh2);
+
+    }
+
+    //二值化
+    public void thresholdImg(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath, 0);
+        Mat thresh1 = new Mat();
+        Mat thresh2 = new Mat();
+        Mat thresh3 = new Mat();
+        Mat thresh4 = new Mat();
+        Mat thresh5 = new Mat();
+        //第一种，当像素超过 127 时，将该像素变为 255
+        Imgproc.threshold(srcImg, thresh1, 127, 255, Imgproc.THRESH_BINARY);
+        //在第一种的基础上，将二值进行反转
+        Imgproc.threshold(srcImg, thresh2, 127, 255, Imgproc.THRESH_BINARY_INV);
+        //当像素超过 127 时，将该像素设置为阀值，我们这里所选的阀值为 127
+        Imgproc.threshold(srcImg, thresh3, 127, 255, Imgproc.THRESH_TRUNC);
+        //当像素超过阀值时，保持原来的像素点不变，小于阀值的像素点取值为 0
+        Imgproc.threshold(srcImg, thresh4, 127, 255, Imgproc.THRESH_TOZERO);
+        //当像素超过阀值时，像素为 0，小于阀值的像素点取值为原始像素
+        Imgproc.threshold(srcImg, thresh5, 127, 255, Imgproc.THRESH_TOZERO_INV);
+        Imgcodecs.imwrite("data/thresh/thresh1.jpg", thresh1);
+        Imgcodecs.imwrite("data/thresh/thresh2.jpg", thresh2);
+        Imgcodecs.imwrite("data/thresh/thresh3.jpg", thresh3);
+        Imgcodecs.imwrite("data/thresh/thresh4.jpg", thresh4);
+        Imgcodecs.imwrite("data/thresh/thresh5.jpg", thresh5);
+
+    }
+
+    //读取图像转换hsv，并提取红色部分
+    public void readHsvAndTakeRed(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat hsvImg = new Mat();
+        Imgproc.cvtColor(srcImg, hsvImg, Imgproc.COLOR_BGR2HSV);
+
+        Scalar min = new Scalar(0, 43, 46);
+        Scalar max = new Scalar(10, 255, 255);
+        Mat mask = new Mat();
+
+        Core.inRange(hsvImg, min, max, mask);
+        Mat resImg = new Mat();
+        Core.bitwise_and(srcImg, srcImg, resImg, mask);
+        Imgcodecs.imwrite("data/hsv/hsv_red_img.jpg", resImg);
+    }
+
+
+    //读取图像为灰度图
+    public void readGrayImg(String imgPath) {
+        Mat imread = Imgcodecs.imread(imgPath, 0);
+        HighGui.imshow("gray_img", imread);
+        HighGui.waitKey();
+        HighGui.destroyAllWindows();
+    }
+
+    //读取图像后再转换为灰度图
+    public void readAndconvertGray(String imgPath) {
+        Mat imread = Imgcodecs.imread(imgPath);
+        Mat dstMat = new Mat();
+        Imgproc.cvtColor(imread, dstMat, Imgproc.COLOR_BGR2GRAY, 0);
+        HighGui.imshow("gray_img", dstMat);
+        HighGui.waitKey();
+        HighGui.destroyAllWindows();
+    }
+
+    //读取图像并显示
+    public void readImageAndShow(String imgPath, String winName) {
+        Mat imread = Imgcodecs.imread(imgPath);
+        HighGui.imshow(winName, imread);
+        HighGui.waitKey();
+        HighGui.destroyAllWindows();
+    }
+
+    //读取视频并显示
+    public void readVideoAndShow(String videoPath) {
+
+        VideoCapture cap = new VideoCapture();
+        cap.open(videoPath);
+        if (!cap.isOpened()) {
+            System.out.println("could not load video data...");
+            return;
+        }
+        //显示图像
+        Mat frame = new Mat();
+        while (true) {
+            boolean read = cap.read(frame);
+            if (!read) break;
+            if (!frame.empty()) {
+                HighGui.imshow("video", frame);
+                HighGui.waitKey(25);
+            }
+        }
+        HighGui.destroyAllWindows();
+
+    }
+
+
+}
