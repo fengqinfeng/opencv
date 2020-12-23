@@ -35,10 +35,57 @@ public class CVTools {
         return tools;
     }
 
+    //均值滤波
+    public void meanBlur(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat dstImg = new Mat();
+        Imgcodecs.imwrite("data/blur/mean/01.jpg", srcImg);
+        Imgproc.blur(srcImg, dstImg, new Size(5, 5));
+
+        Imgcodecs.imwrite("data/blur/mean/02.jpg", dstImg);
+
+    }
+
+    //高斯双边滤波
+    public void bilateralFilterBlur(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat dstImg = new Mat();
+        Imgcodecs.imwrite("data/blur/bilateralFilterBlur/01.jpg", srcImg);
+        /**
+         d：像素的邻域直径，可有 sigmaColor 和 sigmaSpace 计算可得；
+         sigmaColor：颜色空间的标准方差，一般尽可能大；
+         sigmaSpace：坐标空间的标准方差(像素单位)，一般尽可能小。
+         */
+        Imgproc.bilateralFilter(srcImg, dstImg, 0, 300, 5);
+        Imgcodecs.imwrite("data/blur/bilateralFilterBlur/02.jpg", dstImg);
+
+    }
+
+    //高斯滤波
+    public void guassianBlur(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat dstImg = new Mat();
+        Imgcodecs.imwrite("data/blur/guassianBlur/01.jpg", srcImg);
+        Imgproc.GaussianBlur(srcImg, dstImg, new Size(5, 5), 0);
+        Imgcodecs.imwrite("data/blur/guassianBlur/02.jpg", dstImg);
+
+    }
+
+    //中值滤波
+    public void medianBlur(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat dstImg = new Mat();
+        Imgcodecs.imwrite("data/blur/medianBlur/01.jpg", srcImg);
+        Imgproc.medianBlur(srcImg, dstImg, 5);
+        Imgcodecs.imwrite("data/blur/medianBlur/02.jpg", dstImg);
+
+    }
+
     //开运算：先腐蚀后膨胀
     public void openCalc(String imgPath) {
         Mat srcImg = Imgcodecs.imread(imgPath, 0);
         Mat thresh = new Mat();
+        //二值化
         Imgproc.adaptiveThreshold(
                 srcImg,
                 thresh,
@@ -48,11 +95,17 @@ public class CVTools {
                 11,
                 2);
         //卷积核
-        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
-        Mat erodeImg = new Mat();
-        Imgproc.erode(thresh, erodeImg, element);
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3));
+        Mat rsImg = new Mat();
 
-        Imgcodecs.imwrite("open_close_calc/erode_img.jpg", erodeImg);
+        Imgcodecs.imwrite("data/open_close_calc/01thresh.jpg", thresh);
+        //dilate原本是膨胀，可能是由于我选的版本太新，这里变为了腐蚀操作
+        Imgproc.dilate(thresh, rsImg, element);
+        Imgcodecs.imwrite("data/open_close_calc/02erode_img.jpg", rsImg);
+        //同样的，erode原本是腐蚀操作，但实际效果确实膨胀操作
+        Imgproc.erode(rsImg, rsImg, element);
+
+        Imgcodecs.imwrite("data/open_close_calc/03dilate_img.jpg", rsImg);
     }
 
     //直方图阈值
