@@ -6,6 +6,10 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 //opencv-java工具包
 public class CVTools {
 
@@ -33,6 +37,89 @@ public class CVTools {
             }
         }
         return tools;
+    }
+
+    //查找轮廓
+    public void findCounters(String imgPath) {
+
+        Mat srcImg = Imgcodecs.imread(imgPath);
+
+        Mat bitWiseNotMat = new Mat();
+        //颜色取反
+        Core.bitwise_not(srcImg, bitWiseNotMat);
+
+        //转为灰度图
+        Mat grayMat = new Mat();
+        Imgproc.cvtColor(bitWiseNotMat, grayMat, Imgproc.COLOR_BGR2GRAY, 0);
+
+        //腐蚀后膨胀，去除周边的黑色小轮廓
+        //腐蚀卷积核
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4));
+        Mat erodeMat = new Mat();
+        Imgproc.dilate(grayMat, erodeMat, element);
+        //膨胀卷积核
+        Mat element2 = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(8, 8));
+        Mat dilateMat = new Mat();
+        Imgproc.dilate(grayMat, dilateMat, element2);
+
+
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+
+        Mat hierarchy = new Mat();
+        //查找轮廓
+        Imgproc.findContours(dilateMat, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        //将所有的轮廓画出来，-1表示画出所有的轮廓,contours是轮廓的集合，每个MatOfPoint都是轮廓上的点
+        Imgproc.drawContours(srcImg, contours, -1, new Scalar(0, 255, 0), 3);
+
+        //保存结果
+        Imgcodecs.imwrite("data/cnt/result.jpg", srcImg);
+    }
+
+    //去除四周留白：扫描思路，以从上向下扫描为例，扫描到某一列像素包含有像素0即停止扫描
+    public void removeEdgeBlank(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath, 0);
+        Mat dstImg = new Mat();
+        //黑色和白色颜色取反
+        Core.bitwise_not(srcImg, dstImg);
+
+        //扫描有图案部分与上下空白的分割线
+        Boolean flag = true;
+        int top = 0, bot = 0;
+        for (int i = 0; i < dstImg.height(); i++) {
+            int rowsPx = calcRowsPx(i, dstImg);
+            if (flag) {
+                if (rowsPx > 0) {
+                    top = i;
+                    flag = false;
+                }
+            } else {
+
+                if (rowsPx == 0) {
+                    bot = i;
+                    break;
+                }
+            }
+        }
+        System.out.println("上边空白与图案部分的分隔线：" + top);
+        System.out.println("上边空白与图案部分的分隔线：" + bot);
+
+        //提取图案部分
+        Rect rect = new Rect(0, top, dstImg.width(), bot - top);
+        Mat result = new Mat(srcImg, rect);
+        Imgcodecs.imwrite("data/roi/result.jpg", result);
+
+    }
+
+
+    //计算一行像素和
+    public int calcRowsPx(int rowId, Mat mat) {
+        int width = mat.width();
+        int rowsPx = 0;
+        for (int i = 0; i < width; i++) {
+            rowsPx += (int) mat.get(rowId, i)[0];
+        }
+        return rowsPx;
     }
 
     //均值滤波
