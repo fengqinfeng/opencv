@@ -39,6 +39,61 @@ public class CVTools {
         return tools;
     }
 
+    //Canny算子
+    public void cannyEdge(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat cannyImg = new Mat();
+        //minVal，图像灰度梯度低于 minVal 的边界去除
+        //maxVal，图像灰度梯度高于 maxVal 的边界保留
+        Imgproc.Canny(srcImg, cannyImg, 100, 200);
+
+        Imgcodecs.imwrite("data/canny/01-src.jpg", srcImg);
+        Imgcodecs.imwrite("data/canny/02-rs.jpg", cannyImg);
+    }
+
+    //Laplacian算子
+    public void LaplacianEdge(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat laImg = new Mat();
+        Imgproc.Laplacian(srcImg, laImg, 5);
+        Mat rsImg = new Mat();
+        Core.convertScaleAbs(laImg, rsImg);
+        Imgcodecs.imwrite("data/lap/01-src.jpg", srcImg);
+        Imgcodecs.imwrite("data/lap/02-rs.jpg", rsImg);
+    }
+
+    //Sobel算子
+    public void sobelEdge(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+
+        //求X方向的梯度
+        Mat gradX = new Mat();
+        //Scharr算子改为Imgproc.Scharr()即可
+        Imgproc.Scharr(srcImg, gradX, 5, 1, 0);
+        Mat gradY = new Mat();
+        //求y方向的梯度
+        Imgproc.Scharr(srcImg, gradY, 5, 0, 1);
+
+        //使用线性变换转换输入数组元素成 8 位无符号整型
+        Mat absGradX = new Mat();
+        Core.convertScaleAbs(gradX, absGradX);
+        Mat absGradY = new Mat();
+        Core.convertScaleAbs(gradY, absGradY);
+        //最终效果
+        Mat gradXy = new Mat();
+        //图像叠加，参数含义：
+        //原图 1
+        //原图 1 叠加权重
+        //原图 2
+        //原图 2 叠加权重
+        //加到权重总和上的标量值，越大图片越白
+        Core.addWeighted(absGradX, 0.1, absGradY, 0.2, 0, gradXy);
+
+        Imgcodecs.imwrite("data/sobel/01-src.jpg", srcImg);
+        Imgcodecs.imwrite("data/sobel/02-rs.jpg", gradXy);
+    }
+
+
     //查找轮廓
     public void findCounters(String imgPath) {
 

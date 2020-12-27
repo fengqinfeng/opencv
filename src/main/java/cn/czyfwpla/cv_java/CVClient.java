@@ -5,6 +5,6 @@ public class CVClient {
 
     public static void main(String[] args) {
         CVTools tools = CVTools.getTools();
-        tools.findCounters("data/roi/result.jpg");
+        tools.cannyEdge("data/demo.jpg");
     }
 }
