@@ -1,13 +1,19 @@
 package cn.czyfwpla.cv_java;
 
 import org.opencv.core.*;
+import org.opencv.core.Point;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 //opencv-java工具包
@@ -37,6 +43,154 @@ public class CVTools {
             }
         }
         return tools;
+    }
+
+    private BufferedImage matToBufImg(Mat matrix, String fileExtension) {
+        // convert the matrix into a matrix of bytes appropriate for
+        // this file extension
+        MatOfByte mob = new MatOfByte();
+        Imgcodecs.imencode(fileExtension, matrix, mob);
+        // convert the "matrix of bytes" into a byte array
+        byte[] byteArray = mob.toArray();
+        BufferedImage bufImage = null;
+        try {
+            InputStream in = new ByteArrayInputStream(byteArray);
+            bufImage = ImageIO.read(in);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bufImage;
+    }
+
+    private Mat bufImgToMat(BufferedImage original, int imgType, int matType) {
+        if (original == null) {
+            throw new IllegalArgumentException("original == null");
+        }
+
+        // Don't convert if it already has correct type
+        if (original.getType() != imgType) {
+
+            // Create a buffered image
+            BufferedImage image = new BufferedImage(original.getWidth(), original.getHeight(), imgType);
+
+            // Draw the image onto the new buffer
+            Graphics2D g = image.createGraphics();
+            try {
+                g.setComposite(AlphaComposite.Src);
+                g.drawImage(original, 0, 0, null);
+            } finally {
+                g.dispose();
+            }
+        }
+
+        byte[] pixels = ((DataBufferByte) original.getRaster().getDataBuffer()).getData();
+        Mat mat = Mat.eye(original.getHeight(), original.getWidth(), matType);
+        mat.put(0, 0, pixels);
+        return mat;
+    }
+
+
+    //写字
+    public void text(String imgPath) {
+        Mat src = Imgcodecs.imread(imgPath);
+        BufferedImage bufferedImage = matToBufImg(src, ".jpg");
+        Font font = new Font("微软雅黑", Font.PLAIN, 30);
+        Graphics2D graphics = bufferedImage.createGraphics();
+        graphics.setFont(font);
+        graphics.setColor(new Color(0, 255, 0));
+        graphics.drawString("你好！", 100, 100);
+        graphics.dispose();
+        Mat mat = bufImgToMat(bufferedImage, BufferedImage.TYPE_3BYTE_BGR, CvType.CV_8UC3);
+        Imgcodecs.imwrite("data/draw/06text.jpg", mat);
+    }
+
+    //绘图
+    public void draw(String imgPath) {
+        Mat src = Imgcodecs.imread(imgPath);
+
+        Imgproc.putText(src, "opencv_text", new Point(50, 50), Imgproc.FONT_HERSHEY_SIMPLEX, 1.3, new Scalar(0, 255, 0), 3);
+
+        //自定义图案，以画三角形为例
+//        List<MatOfPoint> matOfPoints = new ArrayList<MatOfPoint>();
+
+        //定义三角形的三个顶点
+//        MatOfPoint matOfPoint = new MatOfPoint(new Point(128, 502), new Point(449, 97), new Point(618, 518));
+//        matOfPoints.add(matOfPoint);
+//        Imgproc.fillPoly(src, matOfPoints, new Scalar(0, 255, 0));
+
+
+//        //画椭圆
+//        RotatedRect rotatedRect = new RotatedRect();
+//        //椭圆圆心
+//        rotatedRect.center = new Point(490, 288);
+//        //椭圆旋转角度
+//        rotatedRect.angle = 0;
+//        //椭圆的长轴和短轴
+//        rotatedRect.size = new Size(200, 100);
+//        //调用画椭圆接口
+//        Imgproc.ellipse(src, rotatedRect, new Scalar(0, 255, 0), 3);
+
+        //画圆，参数分别为：原图，圆心，半径，线的颜色，线的粗细程度
+//        Imgproc.circle(src, new Point(490, 288), 60, new Scalar(0, 255, 0), 3);
+
+        //绘制执行，参数分别为：原图，矩形的左上顶点和右下顶点，线的颜色，线的粗细程度
+//        Imgproc.rectangle(src, new Point(10, 10), new Point(200, 200), new Scalar(0, 255, 0), 3);
+
+        //绘制直线，参数分别为：原图，线的起点和重点，线的颜色，线的粗细程度
+//        Imgproc.line(src, new Point(width / 2, 0), new Point(width / 2, height), new Scalar(0, 255, 0), 3);
+
+        Imgcodecs.imwrite("data/draw/05custom.jpg", src);
+
+
+    }
+
+    //旋转指定的角度
+    public void rotateAnyAngle(String imgPath) {
+        Mat src = Imgcodecs.imread(imgPath);
+        double angle = 90;
+        Mat dst = src.clone();
+        Point center = new Point(src.width() / 2.0, src.height() / 2.0);
+        Mat affineTrans = Imgproc.getRotationMatrix2D(center, angle, 1.0);
+        Imgproc.warpAffine(src, dst, affineTrans, dst.size(), Imgproc.INTER_NEAREST);
+        Imgcodecs.imwrite("data/rotate/08-rot-any.jpg", dst);
+    }
+
+    //图像翻转和镜像
+    public void rotateImg(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+        Mat xImg = new Mat();
+        Mat yImg = new Mat();
+        Mat xyImg = new Mat();
+        //沿x轴方向旋转
+        Core.flip(srcImg, xImg, 0);
+        //沿y轴方向旋转
+        Core.flip(srcImg, yImg, 1);
+        //沿x、y轴方向同时旋转，不同理解的话，可以想象成先沿x轴旋转完毕后，再沿y轴旋转
+        Core.flip(srcImg, xyImg, -1);
+
+        Mat transImg = new Mat();
+        Core.transpose(srcImg, transImg);
+
+        //顺时针旋转90度：先进行图像转置，再将图像沿y轴翻转
+        Mat rot270 = new Mat();
+        Core.flip(transImg, rot270, 0);
+
+        //旋转180度，直接将原图沿x,y轴同时翻转即可
+        Mat rot180 = new Mat();
+        Core.flip(srcImg, rot180, -1);
+
+        //旋转270度(-90度)：先进行图像的转置，在再将图像沿x轴翻转
+        Mat rot90 = new Mat();
+        Core.flip(transImg, rot90, 1);
+
+
+        Imgcodecs.imwrite("data/rotate/01-xImg.jpg", xImg);
+        Imgcodecs.imwrite("data/rotate/02-yImg.jpg", yImg);
+        Imgcodecs.imwrite("data/rotate/03-xyImg.jpg", xyImg);
+        Imgcodecs.imwrite("data/rotate/04-trans.jpg", transImg);
+        Imgcodecs.imwrite("data/rotate/05-ret90.jpg", rot90);
+        Imgcodecs.imwrite("data/rotate/06-ret180.jpg", rot180);
+        Imgcodecs.imwrite("data/rotate/07-ret270.jpg", rot270);
     }
 
     //Canny算子
@@ -93,11 +247,28 @@ public class CVTools {
         Imgcodecs.imwrite("data/sobel/02-rs.jpg", gradXy);
     }
 
+    //查找roi区域
+    public void findROI(String imgPath) {
+        Mat srcImg = Imgcodecs.imread(imgPath);
+
+        //选择某列
+        Mat col = srcImg.col(0);
+
+        //选择指定范围的多列
+        Mat mat = srcImg.colRange(0, 10);
+
+        //选择某行
+        Mat row = srcImg.row(0);
+
+        //选择指定范围的多行
+        Mat mat1 = srcImg.rowRange(0, 10);
+    }
 
     //查找轮廓
     public void findCounters(String imgPath) {
 
         Mat srcImg = Imgcodecs.imread(imgPath);
+
 
         Mat bitWiseNotMat = new Mat();
         //颜色取反
@@ -169,12 +340,16 @@ public class CVTools {
 
     //计算一行像素和
     public int calcRowsPx(int rowId, Mat mat) {
+
+
         int width = mat.width();
         int rowsPx = 0;
         for (int i = 0; i < width; i++) {
             rowsPx += (int) mat.get(rowId, i)[0];
         }
         return rowsPx;
+
+
     }
 
     //均值滤波

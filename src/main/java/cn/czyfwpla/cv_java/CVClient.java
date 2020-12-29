@@ -5,6 +5,6 @@ public class CVClient {
 
     public static void main(String[] args) {
         CVTools tools = CVTools.getTools();
-        tools.cannyEdge("data/demo.jpg");
+        tools.text("data/demo.jpg");
     }
 }
